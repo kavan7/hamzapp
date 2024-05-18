@@ -1,6 +1,6 @@
-// pages/flashcards.tsx
 "use client";
 import React, { useState } from 'react';
+import Link from 'next/link';
 
 const FlashcardsPage: React.FC = () => {
   const [flashcards, setFlashcards] = useState<Array<[string, string, string, string]>>([
@@ -75,6 +75,9 @@ const FlashcardsPage: React.FC = () => {
           </div>
         ))}
       </div>
+      <Link href="../">
+        <button style={{ marginTop: '20px', padding: '10px 20px' }}>Go to Home</button>
+      </Link>
     </div>
   );
 };

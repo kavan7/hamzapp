@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { PoseLandmarker, FilesetResolver, DrawingUtils, LandmarkData } from '@mediapipe/tasks-vision';
 import Flashcard from './components/Flashcard';
 import { calculateAngle } from './utils/MathUtils';
+import Link from 'next/link';
 
 
 let leftStage = "up";
@@ -214,6 +215,9 @@ const PoseLandmarkerComponent: React.FC = () => {
         onAnswer={handleAnswer}
         onNewQuestion={handleNewQuestion}
       />
+      <Link href="/addFlashcard">
+        <button style={{ marginTop: '20px', padding: '10px 20px' }}>Go to Home</button>
+      </Link>
       <style >{`
         .container {
           display: flex;
