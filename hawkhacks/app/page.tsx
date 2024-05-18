@@ -2,10 +2,38 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { PoseLandmarker, FilesetResolver, DrawingUtils, LandmarkData } from '@mediapipe/tasks-vision';
+import Flashcard from './components/Flashcard';
 
 let stage = "up";
 
+const initialQuestion = {
+  question: "What is the capital of France?",
+  choices: ["Paris", "Berlin"] as [string, string],
+  correctAnswer: "Paris",
+};
+
+const getNewQuestion = async () => {
+  // Simulate an AI call to generate a new question
+  return {
+    question: "What is the capital of Germany?",
+    choices: ["Berlin", "Paris"] as [string, string],
+    correctAnswer: "Berlin",
+  };
+};
+
+
 const PoseLandmarkerComponent: React.FC = () => {
+  const [question, setQuestion] = useState(initialQuestion);
+
+  const handleAnswer = (isCorrect: boolean) => {
+    alert(isCorrect ? "Correct!" : "Incorrect!");
+  };
+
+  const handleNewQuestion = async () => {
+    const newQuestion = await getNewQuestion();
+    setQuestion(newQuestion);
+  };
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [poseLandmarker, setPoseLandmarker] = useState<PoseLandmarker | null>(null);
@@ -136,6 +164,13 @@ const PoseLandmarkerComponent: React.FC = () => {
       </button>
       <p>Counter: {counter}</p>
       <p>Stage: {stage}</p>
+      <Flashcard
+        question={question.question}
+        choices={question.choices}
+        correctAnswer={question.correctAnswer}
+        onAnswer={handleAnswer}
+        onNewQuestion={handleNewQuestion}
+      />
       <style jsx>{`
         .container {
           display: flex;
