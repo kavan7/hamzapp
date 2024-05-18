@@ -179,7 +179,8 @@ const PoseLandmarkerComponent: React.FC = () => {
   };
 
   return (
-    <div className="container">
+    <section className='bg-hero-pattern'>
+    <div className="container ">
       <div className="video-container">
         <video ref={videoRef} style={{ display: 'block' }}></video>
         <canvas ref={canvasRef} id="output_canvas" width="480" height="480"></canvas>
@@ -198,7 +199,7 @@ const PoseLandmarkerComponent: React.FC = () => {
         onAnswer={handleAnswer}
         onNewQuestion={handleNewQuestion}
       />
-      <style jsx>{`
+      <style >{`
         .container {
           display: flex;
           flex-direction: column;
@@ -224,6 +225,7 @@ const PoseLandmarkerComponent: React.FC = () => {
         }
       `}</style>
     </div>
+    </section>
   );
 };
 
