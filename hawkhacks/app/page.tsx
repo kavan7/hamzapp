@@ -1,113 +1,126 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import React, { useEffect, useRef, useState } from 'react';
+import { PoseLandmarker, FilesetResolver, DrawingUtils, LandmarkData } from '@mediapipe/tasks-vision';
+
+const PoseLandmarkerComponent: React.FC = () => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [poseLandmarker, setPoseLandmarker] = useState<PoseLandmarker | null>(null);
+  const [webcamRunning, setWebcamRunning] = useState(false);
+  const [counter, setCounter] = useState(0);
+  const [stage, setStage] = useState<string | null>(null);
+  const lastVideoTime = useRef(-1);
+
+  useEffect(() => {
+    const createPoseLandmarker = async () => {
+      const vision = await FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
+      );
+      const newPoseLandmarker = await PoseLandmarker.createFromOptions(vision, {
+        baseOptions: {
+          modelAssetPath: `https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/1/pose_landmarker_heavy.task`,
+          delegate: "GPU"
+        },
+        runningMode: "VIDEO",
+        numPoses: 2
+      });
+      setPoseLandmarker(newPoseLandmarker);
+    };
+    createPoseLandmarker();
+  }, []);
+
+  const enableCam = async () => {
+    if (!poseLandmarker) {
+      console.log("Wait! poseLandmarker not loaded yet.");
+      return;
+    }
+
+    setWebcamRunning((prev) => !prev);
+
+    const video = videoRef.current;
+    if (video) {
+      if (webcamRunning) {
+        video.srcObject = null;
+      } else {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+        video.style.display = 'block';  // Ensure the video is visible
+        video.addEventListener("loadeddata", predictWebcam);
+      }
+    }
+  };
+
+  const calculateAngle = (a: number[], b: number[], c: number[]): number => {
+    let radians = Math.atan2(c[1] - b[1], c[0] - b[0]) - Math.atan2(a[1] - b[1], a[0] - b[0]);
+    let angle = Math.abs(radians * 180 / Math.PI);
+    if (angle > 180) {
+      angle = 360 - angle;
+    }
+    return angle;
+  };
+
+  const predictWebcam = () => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const canvasCtx = canvas?.getContext("2d");
+
+    if (video && canvas && canvasCtx) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      const startTimeMs = performance.now();
+      if (lastVideoTime.current !== video.currentTime) {
+        lastVideoTime.current = video.currentTime;
+        poseLandmarker!.detectForVideo(video, startTimeMs, (result) => {
+          canvasCtx.save();
+          canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+          for (const landmark of result.landmarks) {
+            const drawingUtils = new DrawingUtils(canvasCtx);
+            drawingUtils.drawLandmarks(landmark, {
+              radius: (data: LandmarkData) => data.from ? DrawingUtils.lerp(data.from.z, -0.15, 0.1, 5, 1) : 1
+            });
+            drawingUtils.drawConnectors(landmark, PoseLandmarker.POSE_CONNECTIONS);
+          }
+          canvasCtx.restore();
+
+
+          if (result.landmarks[0] && result.landmarks[0].length >= 16) {
+            const shoulder = [result.landmarks[0][11].x, result.landmarks[0][11].y];
+            const elbow = [result.landmarks[0][13].x, result.landmarks[0][13].y];
+            const wrist = [result.landmarks[0][15].x, result.landmarks[0][15].y];
+
+            let angle = calculateAngle(shoulder, elbow, wrist);
+
+            if (angle > 160) {
+              setStage("down");
+            } 
+            if (angle < 30 && stage === "down") {
+              setStage("up");
+              setCounter((prev) => prev + 1);
+            }
+          }
+        });
+      }
+
+      if (webcamRunning) {
+        window.requestAnimationFrame(predictWebcam);
+      }
+    }
+  };
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:size-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
+    <div>
+      <video ref={videoRef} style={{ display: 'block', width: '480px', height: '480px' }}></video>
+      <canvas ref={canvasRef} id="output_canvas" width="480" height="480"></canvas>
 
-      <div className="relative z-[-1] flex place-items-center before:absolute before:h-[300px] before:w-full before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 sm:before:w-[480px] sm:after:w-[240px] before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-balance text-sm opacity-50">
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+      <button onClick={enableCam} id="webcamButton">
+        {webcamRunning ? "DISABLE PREDICTIONS" : "ENABLE PREDICTIONS"}
+      </button>
+      <p>Counter: {counter}</p>
+      <p>Stage: {stage}</p>
+    </div>
   );
-}
+};
+
+export default PoseLandmarkerComponent;
