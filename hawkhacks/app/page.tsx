@@ -3,6 +3,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { PoseLandmarker, FilesetResolver, DrawingUtils, LandmarkData } from '@mediapipe/tasks-vision';
 import Flashcard from './components/Flashcard';
+import { calculateAngle } from './utils/MathUtils';
+
 
 let leftStage = "up";
 let rightStage = "up";
@@ -90,14 +92,14 @@ const PoseLandmarkerComponent: React.FC = () => {
     }
   };
 
-  const calculateAngle = (a: number[], b: number[], c: number[]): number => {
-    let radians = Math.atan2(c[1] - b[1], c[0] - b[0]) - Math.atan2(a[1] - b[1], a[0] - b[0]);
-    let angle = Math.abs(radians * 180 / Math.PI);
-    if (angle > 180) {
-      angle = 360 - angle;
-    }
-    return angle;
-  };
+  // const calculateAngle = (a: number[], b: number[], c: number[]): number => {
+  //   let radians = Math.atan2(c[1] - b[1], c[0] - b[0]) - Math.atan2(a[1] - b[1], a[0] - b[0]);
+  //   let angle = Math.abs(radians * 180 / Math.PI);
+  //   if (angle > 180) {
+  //     angle = 360 - angle;
+  //   }
+  //   return angle;
+  // };
 
   const predictWebcam = () => {
     const video = videoRef.current;
@@ -134,45 +136,58 @@ const PoseLandmarkerComponent: React.FC = () => {
           canvasCtx.restore();
 
           if (result.landmarks[0] && result.landmarks[0].length >= 16) {
-            const leftShoulder = [result.landmarks[0][11].x, result.landmarks[0][11].y];
-            const leftElbow = [result.landmarks[0][13].x, result.landmarks[0][13].y];
-            const leftWrist = [result.landmarks[0][15].x, result.landmarks[0][15].y];
+            const leftShoulder = result.landmarks[0][11];
+            const leftElbow = result.landmarks[0][13];
+            const leftWrist = result.landmarks[0][15];
+            const rightShoulder = result.landmarks[0][12];
+            const rightElbow = result.landmarks[0][14];
+            const rightWrist = result.landmarks[0][16];
+            const leftAnkle = result.landmarks[0][28];
+            const leftKnee = result.landmarks[0][26];
+            const leftHip = result.landmarks[0][24];
 
-            const rightShoulder = [result.landmarks[0][12].x, result.landmarks[0][12].y];
-            const rightElbow = [result.landmarks[0][14].x, result.landmarks[0][14].y];
-            const rightWrist = [result.landmarks[0][16].x, result.landmarks[0][16].y];
+            const rightAnkle = result.landmarks[0][27];
+            const rightKnee = result.landmarks[0][25];
+            const rightHip = result.landmarks[0][23];
 
-            let leftAngle = calculateAngle(leftShoulder, leftElbow, leftWrist);
-            console.log(leftAngle);
-
-            let rightAngle = calculateAngle(rightShoulder, rightElbow, rightWrist);
-
-            if (leftAngle > 160 && leftStage === "up") {
-              leftStage = "down";
-            } 
-            else if (leftStage === "down" && leftAngle < 20) {
-              leftStage = "up";
-              setLeftCounter((prev) => prev + 1);
-              if (!hasAnswered) {
-                handleAnswer(question.choices[0] === question.correctAnswer);
-              }
+            let leftAngleS = calculateAngle(leftAnkle, leftKnee, leftHip);
+            let rightAngleS = calculateAngle(rightAnkle, rightKnee, rightHip);
+            let leftAngleP = calculateAngle(leftShoulder, leftElbow, leftWrist);
+            let rightAngleP = calculateAngle(rightShoulder, rightElbow, rightWrist);
+            if (leftAngleS > 80 && leftAngleS < 100 && rightAngleS > 80 && rightAngleS < 100){
+              handleAnswer(question.choices[1] === question.correctAnswer);
             }
-            console.log(leftCounter);
-
-            if (rightAngle > 160 && rightStage === "up") {
-              rightStage = "down";
-            } 
-            else if (rightStage === "down" && rightAngle < 20) {
-              rightStage = "up";
-              setRightCounter((prev) => prev + 1);
-              if (!hasAnswered) {
-                handleAnswer(question.choices[1] === question.correctAnswer);
-              }
+            else if (leftAngleP > 80 && leftAngleP < 100 && rightAngleP > 80 && rightAngleP < 100){
+              handleAnswer(question.choices[0] === question.correctAnswer);
             }
-            console.log(rightCounter);
+          //   if (leftAngle > 160 && leftStage === "up") {
+          //     leftStage = "down";
+          //   } 
+          //   else if (leftStage === "down" && leftAngle < 20) {
+          //     leftStage = "up";
+          //     setLeftCounter((prev) => prev + 1);
+          //     if (!hasAnswered) {
+          //       handleAnswer(question.choices[0] === question.correctAnswer);
+          //     }
+          //   }
+          //   console.log(leftCounter);
+
+          //   if (rightAngle > 160 && rightStage === "up") {
+          //     rightStage = "down";
+          //   } 
+          //   else if (rightStage === "down" && rightAngle < 20) {
+          //     rightStage = "up";
+          //     setRightCounter((prev) => prev + 1);
+          //     if (!hasAnswered) {
+          //       handleAnswer(question.choices[1] === question.correctAnswer);
+          //     }
+          //   }
+          //   console.log(rightCounter);
+          // }
           }
-        });
-      }
+        
+      });
+    }
 
       window.requestAnimationFrame(predictWebcam);
     }
