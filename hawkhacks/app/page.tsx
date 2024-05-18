@@ -4,7 +4,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { PoseLandmarker, FilesetResolver, DrawingUtils, LandmarkData } from '@mediapipe/tasks-vision';
 import Flashcard from './components/Flashcard';
 
-let stage = "up";
+let leftStage = "up";
+let rightStage = "up";
 
 const initialQuestion = {
   question: "What is the capital of France?",
@@ -21,24 +22,28 @@ const getNewQuestion = async () => {
   };
 };
 
-
 const PoseLandmarkerComponent: React.FC = () => {
   const [question, setQuestion] = useState(initialQuestion);
+  const [hasAnswered, setHasAnswered] = useState(false);
 
-  const handleAnswer = (isCorrect: boolean) => {
+  const handleAnswer = async (isCorrect: boolean) => {
     alert(isCorrect ? "Correct!" : "Incorrect!");
+    setHasAnswered(true);
+    await handleNewQuestion();
   };
 
   const handleNewQuestion = async () => {
     const newQuestion = await getNewQuestion();
     setQuestion(newQuestion);
+    setHasAnswered(false);
   };
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [poseLandmarker, setPoseLandmarker] = useState<PoseLandmarker | null>(null);
   const [webcamRunning, setWebcamRunning] = useState(false);
-  const [counter, setCounter] = useState(0);
+  const [leftCounter, setLeftCounter] = useState(0);
+  const [rightCounter, setRightCounter] = useState(0);
 
   const lastVideoTime = useRef(-1);
 
@@ -129,22 +134,42 @@ const PoseLandmarkerComponent: React.FC = () => {
           canvasCtx.restore();
 
           if (result.landmarks[0] && result.landmarks[0].length >= 16) {
-            const shoulder = [result.landmarks[0][11].x, result.landmarks[0][11].y];
-            const elbow = [result.landmarks[0][13].x, result.landmarks[0][13].y];
-            const wrist = [result.landmarks[0][15].x, result.landmarks[0][15].y];
+            const leftShoulder = [result.landmarks[0][11].x, result.landmarks[0][11].y];
+            const leftElbow = [result.landmarks[0][13].x, result.landmarks[0][13].y];
+            const leftWrist = [result.landmarks[0][15].x, result.landmarks[0][15].y];
 
-            let angle = calculateAngle(shoulder, elbow, wrist);
-            console.log(angle);
+            const rightShoulder = [result.landmarks[0][12].x, result.landmarks[0][12].y];
+            const rightElbow = [result.landmarks[0][14].x, result.landmarks[0][14].y];
+            const rightWrist = [result.landmarks[0][16].x, result.landmarks[0][16].y];
 
-            if (angle > 160 && stage === "up") {
-              stage = "down";
+            let leftAngle = calculateAngle(leftShoulder, leftElbow, leftWrist);
+            console.log(leftAngle);
+
+            let rightAngle = calculateAngle(rightShoulder, rightElbow, rightWrist);
+
+            if (leftAngle > 160 && leftStage === "up") {
+              leftStage = "down";
             } 
-            else if (stage === "down" && angle < 20) {
-              stage = "up";
-              setCounter((prev) => prev + 1);
+            else if (leftStage === "down" && leftAngle < 20) {
+              leftStage = "up";
+              setLeftCounter((prev) => prev + 1);
+              if (!hasAnswered) {
+                handleAnswer(question.choices[0] === question.correctAnswer);
+              }
             }
-            console.log(counter);
+            console.log(leftCounter);
 
+            if (rightAngle > 160 && rightStage === "up") {
+              rightStage = "down";
+            } 
+            else if (rightStage === "down" && rightAngle < 20) {
+              rightStage = "up";
+              setRightCounter((prev) => prev + 1);
+              if (!hasAnswered) {
+                handleAnswer(question.choices[1] === question.correctAnswer);
+              }
+            }
+            console.log(rightCounter);
           }
         });
       }
@@ -162,8 +187,10 @@ const PoseLandmarkerComponent: React.FC = () => {
       <button onClick={enableCam} id="webcamButton">
         {webcamRunning ? "DISABLE PREDICTIONS" : "ENABLE PREDICTIONS"}
       </button>
-      <p>Counter: {counter}</p>
-      <p>Stage: {stage}</p>
+      <p>leftCounter: {leftCounter}</p>
+      <p>leftStage: {leftStage}</p>
+      <p>rightCounter: {rightCounter}</p>
+      <p>rightStage: {rightStage}</p>
       <Flashcard
         question={question.question}
         choices={question.choices}
