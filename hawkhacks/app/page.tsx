@@ -3,13 +3,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { PoseLandmarker, FilesetResolver, DrawingUtils, LandmarkData } from '@mediapipe/tasks-vision';
 
+let stage = "up";
+
 const PoseLandmarkerComponent: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [poseLandmarker, setPoseLandmarker] = useState<PoseLandmarker | null>(null);
   const [webcamRunning, setWebcamRunning] = useState(false);
   const [counter, setCounter] = useState(0);
-  const [stage, setStage] = useState<string | null>(null);
+
   const lastVideoTime = useRef(-1);
 
   useEffect(() => {
@@ -23,7 +25,7 @@ const PoseLandmarkerComponent: React.FC = () => {
           delegate: "GPU"
         },
         runningMode: "VIDEO",
-        numPoses: 2
+        numPoses: 3
       });
       setPoseLandmarker(newPoseLandmarker);
     };
@@ -36,17 +38,21 @@ const PoseLandmarkerComponent: React.FC = () => {
       return;
     }
 
-    setWebcamRunning((prev) => !prev);
-
     const video = videoRef.current;
     if (video) {
       if (webcamRunning) {
         video.srcObject = null;
+        setWebcamRunning(false);
       } else {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        video.srcObject = stream;
-        video.style.display = 'block';  // Ensure the video is visible
-        video.addEventListener("loadeddata", predictWebcam);
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          video.srcObject = stream;
+          video.play();
+          video.addEventListener("loadeddata", predictWebcam);
+          setWebcamRunning(true);
+        } catch (error) {
+          console.error("Error accessing webcam: ", error);
+        }
       }
     }
   };
@@ -65,25 +71,34 @@ const PoseLandmarkerComponent: React.FC = () => {
     const canvas = canvasRef.current;
     const canvasCtx = canvas?.getContext("2d");
 
-    if (video && canvas && canvasCtx) {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-
+    if (video && canvas && canvasCtx && poseLandmarker) {
       const startTimeMs = performance.now();
       if (lastVideoTime.current !== video.currentTime) {
         lastVideoTime.current = video.currentTime;
-        poseLandmarker!.detectForVideo(video, startTimeMs, (result) => {
+
+        const videoWidth = video.videoWidth;
+        const videoHeight = video.videoHeight;
+        if (videoWidth === 0 || videoHeight === 0) {
+          console.log("Video width or height is zero.");
+          return;
+        }
+        poseLandmarker.detectForVideo(video, startTimeMs, (result) => {
           canvasCtx.save();
           canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-          for (const landmark of result.landmarks) {
-            const drawingUtils = new DrawingUtils(canvasCtx);
-            drawingUtils.drawLandmarks(landmark, {
-              radius: (data: LandmarkData) => data.from ? DrawingUtils.lerp(data.from.z, -0.15, 0.1, 5, 1) : 1
-            });
-            drawingUtils.drawConnectors(landmark, PoseLandmarker.POSE_CONNECTIONS);
-          }
-          canvasCtx.restore();
 
+          if (result.landmarks.length > 0) {
+            for (const landmark of result.landmarks) {
+              const drawingUtils = new DrawingUtils(canvasCtx);
+              drawingUtils.drawLandmarks(landmark, {
+                radius: (data: LandmarkData) => data.from ? DrawingUtils.lerp(data.from.z, -0.15, 0.1, 5, 1) : 1
+              });
+              drawingUtils.drawConnectors(landmark, PoseLandmarker.POSE_CONNECTIONS);
+            }
+          } else {
+            console.log("No landmarks detected.");
+          }
+
+          canvasCtx.restore();
 
           if (result.landmarks[0] && result.landmarks[0].length >= 16) {
             const shoulder = [result.landmarks[0][11].x, result.landmarks[0][11].y];
@@ -91,34 +106,61 @@ const PoseLandmarkerComponent: React.FC = () => {
             const wrist = [result.landmarks[0][15].x, result.landmarks[0][15].y];
 
             let angle = calculateAngle(shoulder, elbow, wrist);
+            console.log(angle);
 
-            if (angle > 160) {
-              setStage("down");
+            if (angle > 160 && stage === "up") {
+              stage = "down";
             } 
-            if (angle < 30 && stage === "down") {
-              setStage("up");
+            else if (stage === "down" && angle < 20) {
+              stage = "up";
               setCounter((prev) => prev + 1);
             }
+            console.log(counter);
+
           }
         });
       }
 
-      if (webcamRunning) {
-        window.requestAnimationFrame(predictWebcam);
-      }
+      window.requestAnimationFrame(predictWebcam);
     }
   };
 
   return (
-    <div>
-      <video ref={videoRef} style={{ display: 'block', width: '480px', height: '480px' }}></video>
-      <canvas ref={canvasRef} id="output_canvas" width="480" height="480"></canvas>
-
+    <div className="container">
+      <div className="video-container">
+        <video ref={videoRef} style={{ display: 'block' }}></video>
+        <canvas ref={canvasRef} id="output_canvas" width="480" height="480"></canvas>
+      </div>
       <button onClick={enableCam} id="webcamButton">
         {webcamRunning ? "DISABLE PREDICTIONS" : "ENABLE PREDICTIONS"}
       </button>
       <p>Counter: {counter}</p>
       <p>Stage: {stage}</p>
+      <style jsx>{`
+        .container {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          height: 100vh;
+        }
+        .video-container {
+          position: relative;
+          width: 480px;
+          height: 480px;
+        }
+        video {
+          width: 100%;
+          height: 100%;
+        }
+        canvas {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+        }
+      `}</style>
     </div>
   );
 };
