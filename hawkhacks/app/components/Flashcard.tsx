@@ -2,6 +2,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
+import FlashcardContainer from '../flashCardContainer/flashCardContainer';
 
 const Card = styled.div`
   display: flex;

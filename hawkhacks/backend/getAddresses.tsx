@@ -1,4 +1,4 @@
-const { HawkhacksApi } = require('neurelo-sdk');
+import { HawkhacksApi } from 'neurelo-sdk';
 
 async function getAllFlashcards() {
     try {

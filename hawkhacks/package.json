@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^0.10.14",
+    "animate.css": "^4.1.1",
     "axios": "^1.6.8",
     "neurelo-sdk": "file:neurelo-sdk-typescript-cmt_e37216.tgz",
     "next": "14.2.3",
@@ -23,7 +24,12 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "compass": "^0.1.1",
+    "css-loader": "^7.1.1",
     "postcss": "^8",
+    "sass": "^1.77.2",
+    "sass-loader": "^14.2.1",
+    "style-loader": "^4.0.0",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
   }

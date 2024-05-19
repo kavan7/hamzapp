@@ -2,50 +2,61 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { PoseLandmarker, FilesetResolver, DrawingUtils, LandmarkData } from '@mediapipe/tasks-vision';
-import Flashcard from './components/Flashcard';
-import { calculateAngle } from './utils/MathUtils';
+import Flashcard from '../components/Flashcard';
+import { calculateAngle } from '../utils/MathUtils';
 import Link from 'next/link';
+import '../styles/globals.css';
 
 let leftStage = "up";
 let rightStage = "up";
-// const [questCount, setQuestCount] = useState(0);
 
 const initialQuestion = {
-  question: "What is the capital of France?",
+  question: "What is the capital of France?" as string,
   choices: ["Berlin", "Paris"] as [string, string],
-  correctAnswer: "Paris",
+  correctAnswer: "Paris" as string,
 };
 
-const getNewQuestion = async () => {
-  let quests: String[][] = [['Which language is primairly used for web development along with HTML and CSS', 'Javascript', 'Python', 'Javascript'], ['What is the purpose of a "for loop" in programming', 'To iterate over a sequence of elements', 'To define a new variable', 'To iterate over a sequence of elements'], ['Which of the following is a version control system', 'Git', 'SSH', 'Git'], ['What does the python function len() do', 'converts a value to a string', 'returns the length of an object', 'returns the length of an object'], ['What does SQL stand for', 'Structured Query Language', 'Simple Query List', 'Structured Query Language'], ['Which HTML tag is used to create a hyperlink', '<a>', '<link>', '<a>'], ['Which language is primairly usef for iOS app development', 'Swift', 'Kotlin', 'Swift'], ['What is the main purpose of CSS in web dev', 'To style and layout web pages', 'To structure the content of web pages', 'To style and layout web pages'], ['What does API stand for','Advanced Programming Instruction', 'Application Programming Interface', 'Application Programming Interface'],['In Java, what keyword is used to define a class', 'define', 'class', 'class'] ]
+const quests: string[][] = [
+  ['Which language is primarily used for web development along with HTML and CSS', 'Javascript', 'Python', 'Javascript'],
+  ['What is the purpose of a "for loop" in programming',  'To define a new variable', 'To iterate over a sequence of elements', 'To iterate over a sequence of elements'],
+  ['Which of the following is a version control system', 'Git', 'SSH', 'Git'],
+  ['What does the python function len() do', 'converts a value to a string', 'returns the length of an object', 'returns the length of an object'],
+  ['What does SQL stand for', 'Structured Query Language', 'Simple Query List', 'Structured Query Language'],
+  ['Which HTML tag is used to create a hyperlink', '<link>', '<a>', '<a>'],
+  ['Which language is primarily used for iOS app development', 'Swift', 'Kotlin', 'Swift'],
+  ['What is the main purpose of CSS in web development', 'To structure the content of web pages', 'To style and layout web pages', 'To style and layout web pages'],
+  ['What does API stand for', 'Advanced Programming Instruction', 'Application Programming Interface', 'Application Programming Interface'],
+  ['In Java, what keyword is used to define a class', 'class', 'define', 'class']
+];
+
+const getNewQuestion = async (questCount: number) => {
+  if (questCount <= 10){
   return {
-    question: "What is the capital of Germany?",
-    choices: ["Berlin", "Paris"] as [string, string],
-    correctAnswer: "Berlin",
+    question: quests[questCount][0],
+    choices: [quests[questCount][1], quests[questCount][2]] as [string, string],
+    correctAnswer: quests[questCount][3],
   };
+} 
+else{
+}
 };
 
 const PoseLandmarkerComponent: React.FC = () => {
   const [question, setQuestion] = useState(initialQuestion);
-  const [hasAnswered, setHasAnswered] = useState(false);
-
-  const handleAnswer = async (isCorrect: boolean) => {
-    alert(isCorrect ? "Correct!" : "Incorrect!");
-    setHasAnswered(true);
-    await handleNewQuestion();
-  };
-
-  const handleNewQuestion = async () => {
-    const newQuestion = await getNewQuestion();
-    setQuestion(newQuestion);
-    setHasAnswered(false);
-  };
-
+  const [questCount, setQuestCount] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [poseLandmarker, setPoseLandmarker] = useState<PoseLandmarker | null>(null);
   const [webcamRunning, setWebcamRunning] = useState(false);
   const lastVideoTime = useRef(-1);
+
+  useEffect(() => {
+    const fetchNewQuestion = async () => {
+      const newQuestion = await getNewQuestion(questCount);
+      setQuestion(newQuestion);
+    };
+    fetchNewQuestion();
+  }, [questCount]);
 
   useEffect(() => {
     const createPoseLandmarker = async () => {
@@ -65,6 +76,15 @@ const PoseLandmarkerComponent: React.FC = () => {
     createPoseLandmarker();
   }, []);
 
+  const handleAnswer = (isCorrect: boolean) => {
+    alert(isCorrect ? "Correct!" : "Incorrect!");
+    setQuestCount(prevCount => prevCount + 1);
+  };
+  const handleNewQuestion = async () => {
+    const newQuestion = await getNewQuestion(questCount + 1);
+    setQuestCount(prevCount => prevCount + 1);
+    setQuestion(newQuestion);
+  };
   const enableCam = async () => {
     if (!poseLandmarker) {
       console.log("Wait! poseLandmarker not loaded yet.");
@@ -105,6 +125,9 @@ const PoseLandmarkerComponent: React.FC = () => {
           console.log("Video width or height is zero.");
           return;
         }
+        canvas.width = videoWidth;
+        canvas.height = videoHeight;
+
         poseLandmarker.detectForVideo(video, startTimeMs, (result) => {
           canvasCtx.save();
           canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
@@ -153,9 +176,10 @@ const PoseLandmarkerComponent: React.FC = () => {
             const rightLegRaised = rightAngleS > 80 && rightAngleS < 100;
 
             if (leftArmRaised && rightArmRaised) {
-              handleAnswer(question.choices[1] === question.correctAnswer);
-            } else if (leftLegRaised && rightLegRaised) {
               handleAnswer(question.choices[0] === question.correctAnswer);
+              console.log(question.choices[0], question.correctAnswer );
+            } else if (leftLegRaised && rightLegRaised) {
+              handleAnswer(question.choices[1] === question.correctAnswer);
             }
           }
         });
@@ -169,45 +193,63 @@ const PoseLandmarkerComponent: React.FC = () => {
       <div className="container" onClick={enableCam}>
         <div className="video-container">
           <video ref={videoRef} style={{ display: 'block' }}></video>
-          <canvas ref={canvasRef} id="output_canvas" width="480" height="480"></canvas>
+          <canvas ref={canvasRef} id="output_canvas"></canvas>
         </div>
         
-        <Flashcard
-          question={question.question}
-          choices={question.choices}
-          correctAnswer={question.correctAnswer}
-          onAnswer={handleAnswer}
-          onNewQuestion={handleNewQuestion}
-        />
+        <div className="bottom-container">
+          <Flashcard
+            question={question.question}
+            choices={question.choices}
+            correctAnswer={question.correctAnswer}
+            onAnswer={handleAnswer}
+            onNewQuestion={handleNewQuestion}
+
+          />
+          
+          <Link href="/addFlashcard">
+            <button style={{ backgroundColor: 'white', alignItems: 'center', justifyContent: 'center', marginTop: 0, marginLeft: 100}}>Add New Flashcard</button>
+          </Link>
+        </div>
         
-        <Link href="/addFlashcard">
-          <button style={{ padding: '10px 10px', backgroundColor: 'blue' }}>Go to Home</button>
-        </Link>
         <style>{`
-          .container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-          }
-          .video-container {
-            position: relative;
-            width: 480px;
-            height: 480px;
-          }
-          video {
-            width: 100%;
-            height: 100%;
-          }
-          canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-          }
-        `}</style>
+  .container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0 20px;
+  }
+  .video-container {
+    position: relative;
+    width: 100%;
+    max-width: 800px;
+    margin-top: 20px;
+    height: auto;
+    margin-bottom: 20px;
+    border-radius: 10px;
+  }
+  video, canvas {
+    width: 100%;
+    height: auto;
+    display: block;
+    margin-top: 20px;
+    border-radius: 10px;
+  }
+  canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+  .bottom-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    max-width: 800px;
+    margin-top: 10px;
+  }
+`}</style>
       </div>
     </section>
   );
