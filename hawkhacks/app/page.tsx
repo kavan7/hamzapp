@@ -6,9 +6,9 @@ import Flashcard from './components/Flashcard';
 import { calculateAngle } from './utils/MathUtils';
 import Link from 'next/link';
 
-
 let leftStage = "up";
 let rightStage = "up";
+// const [questCount, setQuestCount] = useState(0);
 
 const initialQuestion = {
   question: "What is the capital of France?",
@@ -45,9 +45,6 @@ const PoseLandmarkerComponent: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [poseLandmarker, setPoseLandmarker] = useState<PoseLandmarker | null>(null);
   const [webcamRunning, setWebcamRunning] = useState(false);
-  const [leftCounter, setLeftCounter] = useState(0);
-  const [rightCounter, setRightCounter] = useState(0);
-
   const lastVideoTime = useRef(-1);
 
   useEffect(() => {
@@ -92,15 +89,6 @@ const PoseLandmarkerComponent: React.FC = () => {
       }
     }
   };
-
-  // const calculateAngle = (a: number[], b: number[], c: number[]): number => {
-  //   let radians = Math.atan2(c[1] - b[1], c[0] - b[0]) - Math.atan2(a[1] - b[1], a[0] - b[0]);
-  //   let angle = Math.abs(radians * 180 / Math.PI);
-  //   if (angle > 180) {
-  //     angle = 360 - angle;
-  //   }
-  //   return angle;
-  // };
 
   const predictWebcam = () => {
     const video = videoRef.current;
@@ -161,30 +149,6 @@ const PoseLandmarkerComponent: React.FC = () => {
             else if (leftAngleP > 80 && leftAngleP < 100 && rightAngleP > 80 && rightAngleP < 100){
               handleAnswer(question.choices[0] === question.correctAnswer);
             }
-          //   if (leftAngle > 160 && leftStage === "up") {
-          //     leftStage = "down";
-          //   } 
-          //   else if (leftStage === "down" && leftAngle < 20) {
-          //     leftStage = "up";
-          //     setLeftCounter((prev) => prev + 1);
-          //     if (!hasAnswered) {
-          //       handleAnswer(question.choices[0] === question.correctAnswer);
-          //     }
-          //   }
-          //   console.log(leftCounter);
-
-          //   if (rightAngle > 160 && rightStage === "up") {
-          //     rightStage = "down";
-          //   } 
-          //   else if (rightStage === "down" && rightAngle < 20) {
-          //     rightStage = "up";
-          //     setRightCounter((prev) => prev + 1);
-          //     if (!hasAnswered) {
-          //       handleAnswer(question.choices[1] === question.correctAnswer);
-          //     }
-          //   }
-          //   console.log(rightCounter);
-          // }
           }
         
       });
@@ -204,10 +168,6 @@ const PoseLandmarkerComponent: React.FC = () => {
       <button onClick={enableCam} id="webcamButton">
         {webcamRunning ? "DISABLE PREDICTIONS" : "ENABLE PREDICTIONS"}
       </button>
-      <p>leftCounter: {leftCounter}</p>
-      <p>leftStage: {leftStage}</p>
-      <p>rightCounter: {rightCounter}</p>
-      <p>rightStage: {rightStage}</p>
       <Flashcard
         question={question.question}
         choices={question.choices}
@@ -216,7 +176,7 @@ const PoseLandmarkerComponent: React.FC = () => {
         onNewQuestion={handleNewQuestion}
       />
       <Link href="/addFlashcard">
-        <button style={{ marginTop: '20px', padding: '10px 20px' }}>Go to Home</button>
+        <button style={{padding: '10px 10px' }}>Go to Home</button>
       </Link>
       <style >{`
         .container {

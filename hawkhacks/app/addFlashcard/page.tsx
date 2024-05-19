@@ -3,22 +3,20 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 
 const FlashcardsPage: React.FC = () => {
-  const [flashcards, setFlashcards] = useState<Array<[string, string, string, string]>>([
-    ['Question 1', 'Answer 1', 'Answer 2', 'Answer 1'],
-    ['Question 2', 'Answer 1', 'Answer 2', 'Answer 2'],
+  const [flashcards, setFlashcards] = useState<Array<[string, string, string]>>([
+    ['Question 1', 'Answer 1', 'Answer 2'],
+    ['Question 2', 'Answer 1', 'Answer 2'],
   ]);
 
   const [question, setQuestion] = useState('');
-  const [ans1, setAns1] = useState('');
-  const [ans2, setAns2] = useState('');
+  const [incorrectAns, setIncorrectAns] = useState('');
   const [correctAns, setCorrectAns] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setFlashcards([...flashcards, [question, ans1, ans2, correctAns]]);
+    setFlashcards([...flashcards, [question, correctAns, incorrectAns]]);
     setQuestion('');
-    setAns1('');
-    setAns2('');
+    setIncorrectAns('');
     setCorrectAns('');
   };
 
@@ -36,29 +34,20 @@ const FlashcardsPage: React.FC = () => {
           />
         </div>
         <div>
-          <label>Answer 1:</label>
-          <input
-            type="text"
-            value={ans1}
-            onChange={(e) => setAns1(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <label>Answer 2:</label>
-          <input
-            type="text"
-            value={ans2}
-            onChange={(e) => setAns2(e.target.value)}
-            required
-          />
-        </div>
-        <div>
           <label>Correct Answer:</label>
           <input
             type="text"
             value={correctAns}
             onChange={(e) => setCorrectAns(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label>Incorrect Answer:</label>
+          <input
+            type="text"
+            value={incorrectAns}
+            onChange={(e) => setIncorrectAns(e.target.value)}
             required
           />
         </div>
@@ -69,9 +58,8 @@ const FlashcardsPage: React.FC = () => {
         {flashcards.map((flashcard, index) => (
           <div key={index} style={{ border: '1px solid black', margin: '10px', padding: '10px' }}>
             <p><strong>Question:</strong> {flashcard[0]}</p>
-            <p><strong>Answer 1:</strong> {flashcard[1]}</p>
-            <p><strong>Answer 2:</strong> {flashcard[2]}</p>
-            <p><strong>Correct Answer:</strong> {flashcard[3]}</p>
+            <p><strong>Correct Answer:</strong> {flashcard[1]}</p>
+            <p><strong>Incorrect Answer:</strong> {flashcard[2]}</p>
           </div>
         ))}
       </div>
