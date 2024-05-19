@@ -21,7 +21,7 @@ const FlashcardsPage: React.FC = () => {
     setFlashcards([...flashcards, [question, ans1, ans2, correctAns]]);
     setQuestion('');
     setAns1('');
-    setAns2('');
+    setAns2('')
     setCorrectAns('');
   };
 

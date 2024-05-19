@@ -34,15 +34,13 @@ const AnswerButton = styled.button<{ $correct: boolean; $selected: boolean }>`
   width: 100%;
   margin: 10px 0;
   padding: 10px;
-  background-color: ${({ $selected, $correct }) =>
-    $selected ? ($correct ? 'green' : 'red') : '#0070f3'};
   color: white;
   border: none;
   border-radius: 5px;
   cursor: pointer;
+  background-color: #2952d9;
   &:hover {
-    background-color: ${({ $selected, $correct }) =>
-      $selected ? ($correct ? 'darkgreen' : 'darkred') : '#005bb5'};
+    background-color: '#005bb5';
   }
 `;
 
@@ -80,7 +78,7 @@ const Flashcard: React.FC<FlashcardProps> = ({ question, choices, correctAnswer,
             $correct={choice === correctAnswer}
             $selected={choice === selectedAnswer}
           >
-            {choice}
+          {index ? "Squat: " : "Pushup: "}{choice}
           </AnswerButton>
         ))}
       </Options>
