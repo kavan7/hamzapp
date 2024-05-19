@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^0.10.14",
+    "axios": "^1.6.8",
+    "neurelo-sdk": "file:neurelo-sdk-typescript-cmt_e37216.tgz",
     "next": "14.2.3",
     "node": "^22.2.0",
     "react": "^18",

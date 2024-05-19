@@ -1,6 +1,9 @@
 "use client";
 import React, { useState } from 'react';
 import Link from 'next/link';
+const { Address, AddressApiService } = require("neurelo-sdk");
+
+
 
 const FlashcardsPage: React.FC = () => {
   const [flashcards, setFlashcards] = useState<Array<[string, string, string, string]>>([
